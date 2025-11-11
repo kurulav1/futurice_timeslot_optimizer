@@ -7,3 +7,4 @@ __pycache__
 *.hcl
 .terraform.lock.hcl
 .package
+*.tfstate

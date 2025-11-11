@@ -1,5 +1,6 @@
 terraform {
   required_version = ">= 1.6.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -9,6 +10,13 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.5"
     }
+  }
+
+  backend "s3" {
+    bucket       = "terraform-state-kurulav1"
+    key          = "find-optimal-time-slot/terraform.tfstate"
+    region       = "eu-north-1"
+    use_lockfile = true
   }
 }
 
