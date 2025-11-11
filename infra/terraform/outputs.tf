@@ -1,5 +1,5 @@
 output "api_base_url" {
-  value = aws_apigatewayv2_stage.prod.invoke_url
+  value = aws_apigatewayv2_api.http.api_endpoint
 }
 
 output "lambda_function_name" {
