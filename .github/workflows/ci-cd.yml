@@ -1,0 +1,73 @@
+name: ci-cd
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+  AWS_REGION: "eu-north-1"
+
+jobs:
+  test_and_build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r requirements.txt pytest
+      - run: pytest -q
+      - name: Build Lambda artifact
+        run: |
+          rm -rf dist build .package
+          python -m pip install -r requirements.txt -t .package
+          rsync -a app/ .package/app/
+          cd .package
+          zip -r ../dist/function.zip .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-zip
+          path: dist/function.zip
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: [test_and_build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-zip
+          path: dist
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform Init
+        working-directory: infra/terraform
+        run: terraform init -input=false
+      - name: Terraform Apply
+        working-directory: infra/terraform
+        env:
+          TF_VAR_aws_region: ${{ env.AWS_REGION }}
+          TF_VAR_lambda_zip_path: "../../dist/function.zip"
+        run: terraform apply -auto-approve -input=false
+      - name: Show Outputs
+        id: tfout
+        working-directory: infra/terraform
+        run: terraform output -json > tfoutputs.json
+      - name: Print API URL
+        run: |
+          echo "API URL:"
+          cat infra/terraform/tfoutputs.json | jq -r '.api_base_url.value'
