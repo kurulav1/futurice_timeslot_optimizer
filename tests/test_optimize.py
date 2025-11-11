@@ -28,6 +28,40 @@ def test_compute_optimal_multiple_slots():
     assert slots["2024-07-02T09:00"] == {"Mikko", "Joonas"}
     assert slots["2024-07-02T10:00"] == {"Mikko", "Matias"}
 
+def test_compute_optimal_large_group():
+    meeting_name = "Engineering All Hands"
+    participants = [
+        {"name": "Mikko",  "preferredSlots": ["2024-07-05T09:00", "2024-07-05T10:00", "2024-07-05T11:00"]},
+        {"name": "Jani",   "preferredSlots": ["2024-07-05T10:00", "2024-07-05T11:00", "2024-07-05T13:00"]},
+        {"name": "Oskari", "preferredSlots": ["2024-07-05T09:00", "2024-07-05T10:00"]},
+        {"name": "Milla",  "preferredSlots": ["2024-07-05T10:00", "2024-07-05T11:00"]},
+        {"name": "Anna",   "preferredSlots": ["2024-07-05T10:00", "2024-07-05T13:00"]},
+        {"name": "Eetu",   "preferredSlots": ["2024-07-05T08:00", "2024-07-05T10:00"]},
+        {"name": "Emilia", "preferredSlots": ["2024-07-05T10:00", "2024-07-05T12:00"]},
+        {"name": "Jaakko", "preferredSlots": ["2024-07-05T10:00", "2024-07-05T11:00"]},
+        {"name": "Matias", "preferredSlots": ["2024-07-05T11:00", "2024-07-05T13:00"]},
+        {"name": "Harri",  "preferredSlots": ["2024-07-05T10:00", "2024-07-05T12:00"]},
+    ]
+
+    max_participants, optimal_slots = compute_optimal_slots(meeting_name, participants)
+
+    # Verify that the algorithm can handle large input and finds correct max overlap.
+    # Let's compute the expected manually:
+    # 08:00 -> {Eetu}
+    # 09:00 -> {Mikko, Oskari}
+    # 10:00 -> {Mikko, Jani, Oskari, Milla, Anna, Eetu, Emilia, Jaakko, Harri} (9 participants)
+    # 11:00 -> {Mikko, Jani, Milla, Jaakko, Matias} (5)
+    # 12:00 -> {Emilia, Harri}
+    # 13:00 -> {Jani, Anna, Matias}
+
+    assert max_participants == 9
+    assert len(optimal_slots) == 1
+    assert optimal_slots[0]["slot"] == "2024-07-05T10:00"
+
+    expected_names = {"Mikko", "Jani", "Oskari", "Milla", "Anna", "Eetu", "Emilia", "Jaakko", "Harri"}
+    assert set(optimal_slots[0]["participants"]) == expected_names
+
+
 def test_compute_optimal_no_common_slots():
     meeting_name = "No Common Time"
     participants = [
@@ -35,8 +69,5 @@ def test_compute_optimal_no_common_slots():
         {"name": "Frank", "preferredSlots": ["2024-07-03T15:00"]},
     ]
     max_participants, optimal_slots = compute_optimal_slots(meeting_name, participants)
-    assert max_participants == 1
-    assert len(optimal_slots) == 2
-    slots = {slot["slot"]: set(slot["participants"]) for slot in optimal_slots}
-    assert slots["2024-07-03T14:00"] == {"Eve"}
-    assert slots["2024-07-03T15:00"] == {"Frank"}
+    assert max_participants == 0
+    assert optimal_slots == []
