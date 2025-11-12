@@ -45,15 +45,6 @@ def test_compute_optimal_large_group():
 
     max_participants, optimal_slots = compute_optimal_slots(meeting_name, participants)
 
-    # Verify that the algorithm can handle large input and finds correct max overlap.
-    # Let's compute the expected manually:
-    # 08:00 -> {Eetu}
-    # 09:00 -> {Mikko, Oskari}
-    # 10:00 -> {Mikko, Jani, Oskari, Milla, Anna, Eetu, Emilia, Jaakko, Harri} (9 participants)
-    # 11:00 -> {Mikko, Jani, Milla, Jaakko, Matias} (5)
-    # 12:00 -> {Emilia, Harri}
-    # 13:00 -> {Jani, Anna, Matias}
-
     assert max_participants == 9
     assert len(optimal_slots) == 1
     assert optimal_slots[0]["slot"] == "2024-07-05T10:00"
